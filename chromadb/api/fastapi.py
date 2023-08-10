@@ -21,6 +21,8 @@ from typing import Sequence
 from chromadb.api.models.Collection import Collection
 import chromadb.errors as errors
 from uuid import UUID
+
+from chromadb.plugins import with_plugins
 from chromadb.telemetry import Telemetry
 from overrides import override
 
@@ -51,6 +53,7 @@ class FastAPI(API):
         if self._header is not None:
             self._session.headers.update(self._header)
 
+    @with_plugins
     @override
     def heartbeat(self) -> int:
         """Returns the current server time in nanoseconds to check if the server is alive"""
@@ -58,6 +61,7 @@ class FastAPI(API):
         raise_chroma_error(resp)
         return int(resp.json()["nanosecond heartbeat"])
 
+    @with_plugins
     @override
     def list_collections(self) -> Sequence[Collection]:
         """Returns a list of all collections"""
@@ -70,6 +74,7 @@ class FastAPI(API):
 
         return collections
 
+    @with_plugins
     @override
     def create_collection(
         self,
@@ -95,6 +100,7 @@ class FastAPI(API):
             metadata=resp_json["metadata"],
         )
 
+    @with_plugins
     @override
     def get_collection(
         self,
@@ -113,6 +119,7 @@ class FastAPI(API):
             metadata=resp_json["metadata"],
         )
 
+    @with_plugins
     @override
     def get_or_create_collection(
         self,
@@ -124,6 +131,7 @@ class FastAPI(API):
             name, metadata, embedding_function, get_or_create=True
         )
 
+    @with_plugins
     @override
     def _modify(
         self,
@@ -138,12 +146,14 @@ class FastAPI(API):
         )
         raise_chroma_error(resp)
 
+    @with_plugins
     @override
     def delete_collection(self, name: str) -> None:
         """Deletes a collection"""
         resp = self._session.delete(self._api_url + "/collections/" + name)
         raise_chroma_error(resp)
 
+    @with_plugins
     @override
     def _count(self, collection_id: UUID) -> int:
         """Returns the number of embeddings in the database"""
@@ -153,6 +163,7 @@ class FastAPI(API):
         raise_chroma_error(resp)
         return cast(int, resp.json())
 
+    @with_plugins
     @override
     def _peek(self, collection_id: UUID, n: int = 10) -> GetResult:
         return self._get(
@@ -161,6 +172,7 @@ class FastAPI(API):
             include=["embeddings", "documents", "metadatas"],
         )
 
+    @with_plugins
     @override
     def _get(
         self,
@@ -203,6 +215,7 @@ class FastAPI(API):
             documents=body.get("documents", None),
         )
 
+    @with_plugins
     @override
     def _delete(
         self,
@@ -222,6 +235,7 @@ class FastAPI(API):
         raise_chroma_error(resp)
         return cast(IDs, resp.json())
 
+    @with_plugins
     @override
     def _add(
         self,
@@ -250,6 +264,7 @@ class FastAPI(API):
         raise_chroma_error(resp)
         return True
 
+    @with_plugins
     @override
     def _update(
         self,
@@ -278,6 +293,7 @@ class FastAPI(API):
         resp.raise_for_status()
         return True
 
+    @with_plugins
     @override
     def _upsert(
         self,
@@ -306,6 +322,7 @@ class FastAPI(API):
         resp.raise_for_status()
         return True
 
+    @with_plugins
     @override
     def _query(
         self,
@@ -341,6 +358,7 @@ class FastAPI(API):
             documents=body.get("documents", None),
         )
 
+    @with_plugins
     @override
     def reset(self) -> bool:
         """Resets the database"""
@@ -348,6 +366,7 @@ class FastAPI(API):
         raise_chroma_error(resp)
         return cast(bool, resp.json())
 
+    @with_plugins
     @override
     def get_version(self) -> str:
         """Returns the version of the server"""
@@ -355,6 +374,7 @@ class FastAPI(API):
         raise_chroma_error(resp)
         return cast(str, resp.json())
 
+    @with_plugins
     @override
     def get_settings(self) -> Settings:
         """Returns the settings of the client"""

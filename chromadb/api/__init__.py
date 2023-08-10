@@ -17,9 +17,15 @@ from chromadb.api.types import (
 )
 from chromadb.config import Component, Settings
 import chromadb.utils.embedding_functions as ef
+from chromadb.plugins import PluginManager
 
 
 class API(Component, ABC):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.plugin_manager = PluginManager()
+
     @abstractmethod
     def heartbeat(self) -> int:
         """Get the current time in nanoseconds since epoch.
