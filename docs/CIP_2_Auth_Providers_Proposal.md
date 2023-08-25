@@ -2,11 +2,11 @@
 
 ## Status
 
-Current Status: `Accepted`
+Current Status: `Implemented`
 
 ## **Motivation**
 
-Currently, Chroma does not provide any authentication mechanism. This CIP proposes to
+Currently, Chroma does not provide any authentication mechanism. This CIP proposes
 to add authentication abstractions and basic authentication mechanisms to Chroma.
 
 There are intrinsic and extrinsic motivations for this CIP. The intrinsic motivation
