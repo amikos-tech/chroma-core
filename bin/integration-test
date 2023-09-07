@@ -8,7 +8,6 @@ function cleanup {
   docker compose -f docker-compose.test.yml logs test_server
   docker compose -f docker-compose.test.yml ps
   docker inspect $(docker-compose -f docker-compose.test.yml ps -q test_server)
-  dmesg | grep -i "killed process"
   docker compose -f docker-compose.test.yml down --rmi local --volumes
   rm server.htpasswd .chroma_env
 }
