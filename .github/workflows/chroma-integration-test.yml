@@ -12,6 +12,7 @@ on:
     branches:
       - main
       - team/hypothesis-tests
+      - initialCli
   pull_request:
     branches:
       - main
