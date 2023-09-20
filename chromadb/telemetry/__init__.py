@@ -1,6 +1,14 @@
+from chromadb.telemetry.events import (
+    CollectionAddEvent,
+    CollectionDeleteEvent,
+    CollectionGetEvent,
+    CollectionUpdateEvent,
+    CollectionQueryEvent,
+    ClientCreateCollectionEvent,
+)
 from abc import abstractmethod
 import os
-from typing import Callable, ClassVar, Dict, Any
+from typing import Callable, ClassVar, Dict, Any, Tuple, Type
 import uuid
 import time
 from threading import Event, Thread
@@ -84,7 +92,8 @@ class Telemetry(Component):
     def schedule_event_function(
         self, event_function: Callable[..., TelemetryEvent], every_seconds: int
     ) -> None:
-        RepeatedTelemetry(every_seconds, lambda: self.capture(event_function()))
+        RepeatedTelemetry(
+            every_seconds, lambda: self.capture(event_function()))
 
     @property
     def context(self) -> Dict[str, Any]:
@@ -120,3 +129,27 @@ class Telemetry(Component):
         except Exception:
             self._curr_user_id = self.UNKNOWN_USER_ID
         return self._curr_user_id
+
+
+METHOD_EVENT_MAP: Dict[str, Callable[..., Any]] = {
+    "create_collection": ClientCreateCollectionEvent,
+    "get_or_create_collection": ClientCreateCollectionEvent,
+    "get_collection": CollectionGetEvent,
+}
+
+
+def telemetry_class_decorator() -> Callable[[type], Type[Any]]:
+    def _decorator(cls: type) -> Type[Any]:
+        for target_method in METHOD_EVENT_MAP.keys():
+            original_method = getattr(cls, target_method)
+
+            def wrapped(self: Any, *args: Tuple[Any, ...], **kwargs: Dict[str, Any]) \
+                    -> Any:
+
+                self.telemetry_client.capture(
+                    METHOD_EVENT_MAP[target_method](*args, **kwargs))
+                return original_method(self, *args, **kwargs)
+
+            setattr(cls, target_method, wrapped)
+        return cls
+    return _decorator
