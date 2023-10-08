@@ -9,8 +9,19 @@ from typing import Type, TypeVar, cast
 
 from overrides import EnforceOverrides
 from overrides import override
-from pydantic import BaseSettings, validator
 from typing_extensions import Literal
+
+
+in_pydantic_v2 = False
+try:
+    from pydantic import BaseSettings
+except ImportError:
+    in_pydantic_v2 = True
+    from pydantic.v1 import BaseSettings
+    from pydantic.v1 import validator
+
+if not in_pydantic_v2:
+    from pydantic import validator  # type: ignore # noqa
 
 # The thin client will have a flag to control which implementations to use
 is_thin_client = False
@@ -58,6 +69,7 @@ _abstract_type_keys: Dict[str, str] = {
     "chromadb.ingest.Consumer": "chroma_consumer_impl",
     "chromadb.db.system.SysDB": "chroma_sysdb_impl",
     "chromadb.segment.SegmentManager": "chroma_segment_manager_impl",
+    "chromadb.segment.SegmentDirectory": "chroma_segment_directory_impl",
 }
 
 
@@ -77,6 +89,9 @@ class Settings(BaseSettings):  # type: ignore
     chroma_segment_manager_impl: str = (
         "chromadb.segment.impl.manager.local.LocalSegmentManager"
     )
+    chroma_segment_directory_impl: str = (
+        "chromadb.segment.impl.manager.segment_directory.DockerComposeSegmentDirectory"
+    )
 
     tenant_id: str = "default"
     topic_namespace: str = "default"
@@ -91,6 +106,10 @@ class Settings(BaseSettings):  # type: ignore
     chroma_server_api_default_path: Optional[str] = "/api/v1"
     chroma_server_grpc_port: Optional[str] = None
     chroma_server_cors_allow_origins: List[str] = []  # eg ["http://localhost:3000"]
+
+    pulsar_broker_url: Optional[str] = None
+    pulsar_admin_port: Optional[str] = None
+    pulsar_broker_port: Optional[str] = None
 
     chroma_server_auth_provider: Optional[str] = None
 
