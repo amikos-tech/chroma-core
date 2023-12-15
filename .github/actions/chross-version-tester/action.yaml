@@ -1,0 +1,41 @@
+name: 'Bandit Scan'
+description: 'This action performs a security vulnerability scan of python code using bandit library.'
+inputs:
+  client-version:
+    description: 'The client version to test'
+    required: true
+  server-version:
+    description: 'The server version to test'
+    required: true
+  server-port:
+    description: 'The server port to test'
+    required: false
+    default: '8080'
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup Server
+      run: |
+        CHROMA_PORT=${{ inputs.server-port }} VERSION_TAG=${{ inputs.server-version }} docker compose -f ./.github/actions/chross-version-tester/docker-compose.yaml up -d --build
+    - name: Setup Client
+      uses: actions/checkout@v2
+      with:
+        repository: 'chroma-core/chroma'
+        ref: ${{ inputs.client-version }}
+        directory: 'chroma-client'
+    - name: Set up Python ${{ matrix.python }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: 3.8
+    - name: Install test dependencies
+      working-directory: chroma-client
+      run: python -m pip install -r requirements.txt && python -m pip install -r requirements_dev.txt
+    - name: Test
+      working-directory: chroma-client
+      run: |
+        export CHROMA_INTEGRATION_TEST_ONLY=1
+        export CHROMA_API_IMPL=chromadb.api.fastapi.FastAPI
+        export CHROMA_SERVER_HOST=localhost
+        export CHROMA_SERVER_HTTP_PORT=8000
+        export CHROMA_SERVER_NOFILE=65535
+        python -m pytest chromadb/tests/test_api.py

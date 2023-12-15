@@ -1,0 +1,27 @@
+version: '3.9'
+
+networks:
+  test_net:
+    driver: bridge
+
+services:
+  test_server:
+    build:
+      context: .
+      dockerfile: server/Dockerfile
+      args:
+        BRANCH: ${VERSION_TAG}
+    volumes:
+      - chroma-data:/chroma/chroma
+    environment:
+      - ANONYMIZED_TELEMETRY=False
+      - ALLOW_RESET=True
+      - IS_PERSISTENT=TRUE
+    ports:
+      - ${CHROMA_PORT}:8000
+    networks:
+      - test_net
+
+volumes:
+  chroma-data:
+    driver: local
