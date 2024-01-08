@@ -1,7 +1,7 @@
 from typing import Optional, Union, TypeVar, List, Dict, Any, Tuple, cast
 from numpy.typing import NDArray
 import numpy as np
-from typing_extensions import Literal, TypedDict, Protocol
+from typing_extensions import Literal, TypedDict, Protocol, runtime_checkable
 import chromadb.errors as errors
 from chromadb.types import (
     Metadata,
@@ -179,6 +179,7 @@ class IndexMetadata(TypedDict):
     time_created: float
 
 
+@runtime_checkable
 class EmbeddingFunction(Protocol[D]):
     def __call__(self, input: D) -> Embeddings:
         ...
