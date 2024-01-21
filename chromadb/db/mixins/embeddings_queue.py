@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from chromadb.db.base import SqlDB, ParameterValue, get_sql
 from chromadb.ingest import (
     Producer,
@@ -295,6 +297,8 @@ class SqlEmbeddingsQueue(SqlDB, Producer, Consumer):
             sql, params = get_sql(q, self.parameter_format())
             cur.execute(sql, params)
             rows = cur.fetchall()
+            batch = []
+            _max_batch_size = self.max_batch_size
             for row in rows:
                 if row[3]:
                     encoding = ScalarEncoding(row[4])
@@ -302,18 +306,25 @@ class SqlEmbeddingsQueue(SqlDB, Producer, Consumer):
                 else:
                     encoding = None
                     vector = None
+                er = EmbeddingRecord(
+                    seq_id=row[0],
+                    operation=_operation_codes_inv[row[1]],
+                    id=row[2],
+                    embedding=vector,
+                    encoding=encoding,
+                    metadata=json.loads(row[5]) if row[5] else None,
+                )  # type: ignore
+                batch.append(er)
+                if len(batch) == self.max_batch_size:
+                    self._notify_one(
+                        subscription,
+                        batch,
+                    )
+                    batch = []
+            if len(batch) > 0:
                 self._notify_one(
                     subscription,
-                    [
-                        EmbeddingRecord(
-                            seq_id=row[0],
-                            operation=_operation_codes_inv[row[1]],
-                            id=row[2],
-                            embedding=vector,
-                            encoding=encoding,
-                            metadata=json.loads(row[5]) if row[5] else None,
-                        )
-                    ],
+                    batch,
                 )
 
     @trace_method("SqlEmbeddingsQueue._validate_range", OpenTelemetryGranularity.ALL)
