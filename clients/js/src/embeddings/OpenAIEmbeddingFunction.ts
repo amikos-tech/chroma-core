@@ -87,6 +87,11 @@ export class OpenAIEmbeddingFunction implements IEmbeddingFunction {
         this.api_key = openai_api_key;
         this.org_id = openai_organization_id || "";
         this.model = openai_model || "text-embedding-ada-002";
+        if (this.model == "text-embedding-ada-002") {
+            console.warn("NOTICE: You are using the `text-embedding-ada-002` model. " +
+            "OpenAI offers newer models that may perform better.\n" +
+            "Please visit https://platform.openai.com/docs/guides/embeddings/embedding-models for more information")
+        }
     }
 
     private async loadClient() {

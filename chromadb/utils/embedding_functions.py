@@ -147,6 +147,12 @@ class OpenAIEmbeddingFunction(EmbeddingFunction[Documents]):
             raise ValueError(
                 "Please provide an OpenAI API key. You can get one at https://platform.openai.com/account/api-keys"
             )
+        if model_name == "text-embedding-ada-002":
+            logger.warning(
+                "NOTICE: You are using the `text-embedding-ada-002` model. "
+                "OpenAI offers newer models that may perform better.\n"
+                "Please visit https://platform.openai.com/docs/guides/embeddings/embedding-models for more information."
+            )
 
         if api_base is not None:
             openai.api_base = api_base
