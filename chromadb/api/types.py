@@ -169,6 +169,30 @@ class QueryResult(TypedDict):
     distances: Optional[List[List[float]]]
 
 
+Rank = Union[int, float]
+
+
+class RankerScore(TypedDict):
+    ranker_id: str
+    rank: Rank
+
+
+class RankerQueryResult(QueryResult):
+    ranks: Optional[List[List[RankerScore]]]
+
+
+Rankable = Union[str, int, QueryResult]
+R = TypeVar("R", bound=Rankable, contravariant=True)
+
+
+class RankingFunction(Protocol[R]):
+    def get_id(self) -> str:
+        ...
+
+    def __call__(self, results: R) -> RankerQueryResult:
+        ...
+
+
 class IndexMetadata(TypedDict):
     dimensionality: int
     # The current number of elements in the index (total = additions - deletes)
