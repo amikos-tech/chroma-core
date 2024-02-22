@@ -1,0 +1,1 @@
+CREATE INDEX embedding_segment_id_key ON embeddings (segment_id);
