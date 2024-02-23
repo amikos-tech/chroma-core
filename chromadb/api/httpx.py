@@ -106,15 +106,16 @@ class HttpxAPI(ServerAPI):
 
         self._limits = httpx.Limits(max_keepalive_connections=5, max_connections=20)
 
-        self._mode = system.settings.chroma_httpx_mode
+
         if system.settings.chroma_httpx_mode == "sync":
-            self._client = httpx.Client(limits=self._limits)
+            self._client = httpx.Client(limits=self._limits,verify=self._settings.chroma_server_ssl_verify or True)
         elif system.settings.chroma_httpx_mode == "async":
-            self._client = httpx.AsyncClient(limits=self._limits)
+            self._client = httpx.AsyncClient(limits=self._limits,verify=self._settings.chroma_server_ssl_verify or True)
         else:
             raise ValueError(
                 f"Invalid chroma_httpx_mode: {system.settings.chroma_httpx_mode}"
             )
+        self._mode = system.settings.chroma_httpx_mode
         self._opentelemetry_client = self.require(OpenTelemetryClient)
         self._product_telemetry_client = self.require(ProductTelemetryClient)
         self._settings = system.settings
@@ -129,37 +130,41 @@ class HttpxAPI(ServerAPI):
 
         self._header = system.settings.chroma_server_headers
         self._client.base_url = self._api_url
-        if (
-            system.settings.chroma_client_auth_provider
-            and system.settings.chroma_client_auth_protocol_adapter
-        ):
-            self._auth_provider = self.require(
-                resolve_provider(
-                    system.settings.chroma_client_auth_provider, ClientAuthProvider
-                )
-            )
-            self._adapter = cast(
-                RequestsClientAuthProtocolAdapter,
-                system.require(
-                    resolve_provider(
-                        system.settings.chroma_client_auth_protocol_adapter,
-                        RequestsClientAuthProtocolAdapter,
-                    )
-                ),
-            )
-            self._session = self._adapter.session
-        else:
-            self._session = requests.Session()
-        if self._header is not None:
-            self._session.headers.update(self._header)
-        if self._settings.chroma_server_ssl_verify is not None:
-            self._session.verify = self._settings.chroma_server_ssl_verify
+        # if (
+        #     system.settings.chroma_client_auth_provider
+        #     and system.settings.chroma_client_auth_protocol_adapter
+        # ):
+        #     self._auth_provider = self.require(
+        #         resolve_provider(
+        #             system.settings.chroma_client_auth_provider, ClientAuthProvider
+        #         )
+        #     )
+        #     self._adapter = cast(
+        #         RequestsClientAuthProtocolAdapter,
+        #         system.require(
+        #             resolve_provider(
+        #                 system.settings.chroma_client_auth_protocol_adapter,
+        #                 RequestsClientAuthProtocolAdapter,
+        #             )
+        #         ),
+        #     )
+        #     self._session = self._adapter.session
+        # else:
+        # self._session = requests.Session()
+        # if self._header is not None:
+        #     self._session.headers.update(self._header)
+
 
     @trace_method("FastAPI.heartbeat", OpenTelemetryGranularity.OPERATION)
     @override
     def heartbeat(self) -> int:
         """Returns the current server time in nanoseconds to check if the server is alive"""
-        resp = self._session.get(self._api_url)
+        if self._mode == "sync":
+            resp = self._client.get(self._api_url)
+        else:
+            async def _heartbeat():
+                return await self._client.get(self._api_url)
+            resp = _heartbeat()
         raise_chroma_error(resp)
         return int(json.loads(resp.text)["nanosecond heartbeat"])
 
