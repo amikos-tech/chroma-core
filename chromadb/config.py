@@ -228,6 +228,8 @@ class Settings(BaseSettings):  # type: ignore
     # TODO comment
     chroma_overwrite_singleton_tenant_database_access_from_auth: bool = False
 
+    chroma_httpx_mode: Optional[str] = "async"
+
     anonymized_telemetry: bool = True
 
     chroma_otel_collection_endpoint: Optional[str] = ""
