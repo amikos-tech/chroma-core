@@ -155,7 +155,7 @@ class FastAPI(ServerAPI):
         self,
         name: str,
         tenant: str = DEFAULT_TENANT,
-    ) -> None:
+    ) -> Database:
         """Creates a database"""
         resp = self._session.post(
             self._api_url + "/databases",
@@ -163,6 +163,10 @@ class FastAPI(ServerAPI):
             params={"tenant": tenant},
         )
         raise_chroma_error(resp)
+        resp_json = json.loads(resp.text)
+        return Database(
+            id=resp_json["id"], name=resp_json["name"], tenant=resp_json["tenant"]
+        )
 
     @trace_method("FastAPI.get_database", OpenTelemetryGranularity.OPERATION)
     @override
@@ -184,12 +188,16 @@ class FastAPI(ServerAPI):
 
     @trace_method("FastAPI.create_tenant", OpenTelemetryGranularity.OPERATION)
     @override
-    def create_tenant(self, name: str) -> None:
+    def create_tenant(self, name: str) -> Tenant:
         resp = self._session.post(
             self._api_url + "/tenants",
             data=json.dumps({"name": name}),
         )
         raise_chroma_error(resp)
+        resp_json = json.loads(resp.text)
+        return Tenant(
+            name=resp_json["name"],
+        )
 
     @trace_method("FastAPI.get_tenant", OpenTelemetryGranularity.OPERATION)
     @override

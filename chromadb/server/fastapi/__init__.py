@@ -296,7 +296,9 @@ class FastAPI(chromadb.server.Server):
     async def quota_exception_handler(request: Request, exc: QuotaError):
         return JSONResponse(
             status_code=429,
-            content={"message": f"quota error. resource: {exc.resource} quota: {exc.quota} actual: {exc.actual}"},
+            content={
+                "message": f"quota error. resource: {exc.resource} quota: {exc.quota} actual: {exc.actual}"
+            },
         )
 
     def heartbeat(self) -> Dict[str, int]:
@@ -317,7 +319,7 @@ class FastAPI(chromadb.server.Server):
     )
     def create_database(
         self, database: CreateDatabase, tenant: str = DEFAULT_TENANT
-    ) -> None:
+    ) -> Database:
         return self._api.create_database(database.name, tenant)
 
     @trace_method("FastAPI.get_database", OpenTelemetryGranularity.OPERATION)
@@ -341,7 +343,7 @@ class FastAPI(chromadb.server.Server):
             type=AuthzResourceTypes.TENANT,
         ),
     )
-    def create_tenant(self, tenant: CreateTenant) -> None:
+    def create_tenant(self, tenant: CreateTenant) -> Tenant:
         return self._api.create_tenant(tenant.name)
 
     @trace_method("FastAPI.get_tenant", OpenTelemetryGranularity.OPERATION)

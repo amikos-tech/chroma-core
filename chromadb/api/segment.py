@@ -112,28 +112,34 @@ class SegmentAPI(ServerAPI):
         return int(time.time_ns())
 
     @override
-    def create_database(self, name: str, tenant: str = DEFAULT_TENANT) -> None:
+    def create_database(self, name: str, tenant: str = DEFAULT_TENANT) -> t.Database:
         if len(name) < 3:
             raise ValueError("Database name must be at least 3 characters long")
-
-        self._sysdb.create_database(
+        db_obj = t.Database(
             id=uuid4(),
             name=name,
             tenant=tenant,
         )
+        self._sysdb.create_database(
+            id=db_obj["id"],
+            name=db_obj["name"],
+            tenant=db_obj["tenant"],
+        )
+        return db_obj
 
     @override
     def get_database(self, name: str, tenant: str = DEFAULT_TENANT) -> t.Database:
         return self._sysdb.get_database(name=name, tenant=tenant)
 
     @override
-    def create_tenant(self, name: str) -> None:
+    def create_tenant(self, name: str) -> t.Tenant:
         if len(name) < 3:
             raise ValueError("Tenant name must be at least 3 characters long")
 
         self._sysdb.create_tenant(
             name=name,
         )
+        return t.Tenant(name=name)
 
     @override
     def get_tenant(self, name: str) -> t.Tenant:

@@ -476,7 +476,7 @@ class ClientAPI(BaseAPI, ABC):
 
 class AdminAPI(ABC):
     @abstractmethod
-    def create_database(self, name: str, tenant: str = DEFAULT_TENANT) -> None:
+    def create_database(self, name: str, tenant: str = DEFAULT_TENANT) -> Database:
         """Create a new database. Raises an error if the database already exists.
 
         Args:
@@ -497,7 +497,7 @@ class AdminAPI(ABC):
         pass
 
     @abstractmethod
-    def create_tenant(self, name: str) -> None:
+    def create_tenant(self, name: str) -> Tenant:
         """Create a new tenant. Raises an error if the tenant already exists.
 
         Args:

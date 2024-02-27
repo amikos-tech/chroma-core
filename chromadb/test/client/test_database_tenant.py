@@ -7,7 +7,10 @@ def test_database_tenant_collections(client: Client) -> None:
     client.reset()
     # Create a new database in the default tenant
     admin_client = AdminClient.from_system(client._system)
-    admin_client.create_database("test_db")
+    created_db = admin_client.create_database("test_db")
+    assert created_db["name"] == "test_db"
+    assert created_db["tenant"] == DEFAULT_TENANT
+    assert created_db["id"] is not None
 
     # Create collections in this new database
     client.set_tenant(tenant=DEFAULT_TENANT, database="test_db")
@@ -113,10 +116,18 @@ def test_tenant_collections_add(client: Client) -> None:
 
     # Create two databases with same name in different tenants
     admin_client = AdminClient.from_system(client._system)
-    admin_client.create_tenant("test_tenant1")
-    admin_client.create_tenant("test_tenant2")
-    admin_client.create_database("test_db", tenant="test_tenant1")
-    admin_client.create_database("test_db", tenant="test_tenant2")
+    tenant1 = admin_client.create_tenant("test_tenant1")
+    assert tenant1["name"] == "test_tenant1"
+    tenant2 = admin_client.create_tenant("test_tenant2")
+    assert tenant2["name"] == "test_tenant2"
+    db1 = admin_client.create_database("test_db", tenant="test_tenant1")
+    assert db1["name"] == "test_db"
+    assert db1["tenant"] == tenant1["name"]
+    assert db1["id"] is not None
+    db2 = admin_client.create_database("test_db", tenant="test_tenant2")
+    assert db2["name"] == "test_db"
+    assert db2["tenant"] == tenant2["name"]
+    assert db2["id"] is not None
 
     # Create collections in each database with same name
     client.set_tenant(tenant="test_tenant1", database="test_db")
