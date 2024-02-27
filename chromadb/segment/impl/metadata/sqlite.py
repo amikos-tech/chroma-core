@@ -1,3 +1,4 @@
+import orjson as json
 from typing import Optional, Sequence, Any, Tuple, cast, Generator, Union, Dict, List
 from chromadb.segment import MetadataReader
 from chromadb.ingest import Consumer
@@ -30,7 +31,7 @@ from uuid import UUID
 from pypika import Table, Tables
 from pypika.queries import QueryBuilder
 import pypika.functions as fn
-from pypika.terms import Criterion
+from pypika.terms import Criterion, CustomFunction, Function
 from itertools import groupby
 from functools import reduce
 import sqlite3
@@ -127,6 +128,36 @@ class SqliteMetadataSegment(MetadataReader):
         if limit < 0:
             raise ValueError("Limit cannot be negative")
 
+        class CustomStringFunction(Function):
+            def __init__(self, params, alias=None):
+                super().__init__("CustomStringFunction", params)
+                self.params = params
+                self._alias = alias
+
+            def get_function_sql(self, **kwargs: Any):
+                return f"{self.params}"
+
+            def _as(self, alias):
+                self._alias = alias
+            def get_sql(self, **kwargs: Any):
+                return self.get_function_sql(**kwargs)
+        class MyCustomFunction(Function):
+            def __init__(self, function_name, params, alias=None):
+                super().__init__(function_name, params)
+                self.function_name = function_name
+                self.params = params
+                self._alias = alias
+
+            def get_function_sql(self, **kwargs: Any):
+                sql = f"{self.function_name}({self.params})"
+                if self._alias:
+                    sql += f" AS {self._alias}"
+                return sql
+            def get_sql(self, **kwargs: Any):
+                return self.get_function_sql(**kwargs)
+
+            def _as(self, alias):
+                self._alias = alias
         q = (
             (
                 self._db.querybuilder()
@@ -138,13 +169,20 @@ class SqliteMetadataSegment(MetadataReader):
                 embeddings_t.id,
                 embeddings_t.embedding_id,
                 embeddings_t.seq_id,
-                metadata_t.key,
-                metadata_t.string_value,
-                metadata_t.int_value,
-                metadata_t.float_value,
-                metadata_t.bool_value,
+                MyCustomFunction("MAX", "CASE WHEN embedding_metadata.key = 'chroma:document' THEN embedding_metadata.string_value END", "document_content"),
+                CustomStringFunction("""'{' || GROUP_CONCAT(DISTINCT CASE WHEN embedding_metadata.key <> 'chroma:document' THEN '"' || embedding_metadata.key || '": ' || CASE
+                                                                                                             WHEN embedding_metadata.string_value IS NOT NULL
+                                                                                                                 THEN '"' || replace(embedding_metadata.string_value, '"','\"')|| '"'
+                                                                                                             WHEN embedding_metadata.int_value IS NOT NULL
+                                                                                                                 THEN embedding_metadata.int_value
+                                                                                                             WHEN embedding_metadata.float_value IS NOT NULL
+                                                                                                                 THEN embedding_metadata.float_value
+                                                                                                             ELSE embedding_metadata.bool_value
+                                                                                                            END END) || '}'""",alias="metadata")
+
             )
             .orderby(embeddings_t.embedding_id)
+            .groupby(embeddings_t.id)
         )
 
         # If there is a query that touches the metadata table, it uses
@@ -222,31 +260,39 @@ class SqliteMetadataSegment(MetadataReader):
         sql, params = get_sql(q)
         cur.execute(sql, params)
 
-        cur_iterator = iter(cur.fetchone, None)
-        group_iterator = groupby(cur_iterator, lambda r: int(r[0]))
+        # cur_iterator = iter(cur.fetchone, None)
+        # # group_iterator = groupby(cur_iterator, lambda r: int(r[0]))
+        #
+        # for record in cur_iterator:
+        #     yield self._record(record)
 
-        for _, group in group_iterator:
-            yield self._record(list(group))
+        batch_size = 100  # Adjust batch size as needed
+        while True:
+            records = cur.fetchmany(batch_size)
+            if not records:
+                break
+            for record in records:
+                yield self._record(record)
 
     @trace_method("SqliteMetadataSegment._record", OpenTelemetryGranularity.ALL)
-    def _record(self, rows: Sequence[Tuple[Any, ...]]) -> MetadataEmbeddingRecord:
+    def _record(self, rows: Tuple[Any, ...]) -> MetadataEmbeddingRecord:
         """Given a list of DB rows with the same ID, construct a
         MetadataEmbeddingRecord"""
-        _, embedding_id, seq_id = rows[0][:3]
-        metadata = {}
-        for row in rows:
-            key, string_value, int_value, float_value, bool_value = row[3:]
-            if string_value is not None:
-                metadata[key] = string_value
-            elif int_value is not None:
-                metadata[key] = int_value
-            elif float_value is not None:
-                metadata[key] = float_value
-            elif bool_value is not None:
-                if bool_value == 1:
-                    metadata[key] = True
-                else:
-                    metadata[key] = False
+        _, embedding_id, seq_id = rows[:3]
+        metadata = json.loads(rows[4])
+        # for row in rows:
+        #     key, string_value, int_value, float_value, bool_value = row[3:]
+        #     if string_value is not None:
+        #         metadata[key] = string_value
+        #     elif int_value is not None:
+        #         metadata[key] = int_value
+        #     elif float_value is not None:
+        #         metadata[key] = float_value
+        #     elif bool_value is not None:
+        #         if bool_value == 1:
+        #             metadata[key] = True
+        #         else:
+        #             metadata[key] = False
 
         return MetadataEmbeddingRecord(
             id=embedding_id,
