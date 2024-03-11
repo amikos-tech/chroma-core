@@ -29,6 +29,7 @@ from chromadb.api.types import (
     QueryResult,
     CollectionMetadata,
     validate_batch,
+    validate_collection_metadata,
 )
 from chromadb.auth import (
     ClientAuthProvider,
@@ -256,17 +257,19 @@ class FastAPI(ServerAPI):
         database: str = DEFAULT_DATABASE,
     ) -> Collection:
         """Creates a collection"""
+        _metadata = validate_collection_metadata(metadata)
         resp = self._session.post(
             self._api_url + "/collections",
             data=json.dumps(
                 {
                     "name": name,
-                    "metadata": metadata,
+                    "metadata": _metadata,
                     "get_or_create": get_or_create,
                 }
             ),
             params={"tenant": tenant, "database": database},
         )
+
         raise_chroma_error(resp)
         resp_json = json.loads(resp.text)
         return Collection(
@@ -349,9 +352,10 @@ class FastAPI(ServerAPI):
         new_metadata: Optional[CollectionMetadata] = None,
     ) -> None:
         """Updates a collection"""
+        _new_metadata = validate_collection_metadata(new_metadata)
         resp = self._session.put(
             self._api_url + "/collections/" + str(id),
-            data=json.dumps({"new_metadata": new_metadata, "new_name": new_name}),
+            data=json.dumps({"new_metadata": _new_metadata, "new_name": new_name}),
         )
         raise_chroma_error(resp)
 

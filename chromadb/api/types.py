@@ -14,6 +14,7 @@ from chromadb.types import (
     Where,
     WhereDocumentOperator,
     WhereDocument,
+    CollectionMetadata,
 )
 from inspect import signature
 from tenacity import retry
@@ -76,7 +77,6 @@ def maybe_cast_one_to_many_metadata(target: OneOrMany[Metadata]) -> Metadatas:
     return cast(Metadatas, target)
 
 
-CollectionMetadata = Dict[str, Any]
 UpdateCollectionMetadata = UpdateMetadata
 
 # Documents
@@ -254,6 +254,34 @@ def validate_ids(ids: IDs) -> IDs:
             message = f"Expected IDs to be unique, found {n_dups} duplicated IDs: {example_string}"
         raise errors.DuplicateIDError(message)
     return ids
+
+
+def validate_collection_metadata(
+    metadata: Optional[CollectionMetadata],
+) -> Optional[CollectionMetadata]:
+    """Validates metadata to ensure it is a dictionary of strings to strings, ints, floats"""
+    if metadata is None:
+        return metadata
+    if not isinstance(metadata, dict):
+        raise ValueError(
+            f"Expected metadata to be a dict or None, got {type(metadata).__name__} as metadata"
+        )
+
+    if len(metadata) == 0:
+        raise ValueError(
+            f"Expected metadata to be a non-empty dict, got {len(metadata)} metadata attributes"
+        )
+    for key, value in metadata.items():
+        if not isinstance(key, str):
+            raise TypeError(
+                f"Expected metadata key to be a str, got {key} which is a {type(key).__name__}"
+            )
+        # isinstance(True, int) evaluates to True, so we need to check for bools separately
+        if isinstance(value, bool) or not isinstance(value, (str, int, float)):
+            raise ValueError(
+                f"Expected metadata value to be a str, int, float, got {value} which is a {type(value).__name__}"
+            )
+    return metadata
 
 
 def validate_metadata(metadata: Metadata) -> Metadata:

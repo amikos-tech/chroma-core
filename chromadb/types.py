@@ -7,6 +7,8 @@ from enum import Enum
 
 Metadata = Mapping[str, Union[str, int, float, bool]]
 UpdateMetadata = Mapping[str, Union[int, float, str, bool, None]]
+CollectionMetadata = Dict[str, Union[str, int, float]]
+UpdateCollectionMetadata = Dict[str, Union[str, int, float, None]]
 
 # Namespaced Names are mechanically just strings, but we use this type to indicate that
 # the intent is for the value to be globally unique and semantically meaningful.
@@ -27,7 +29,7 @@ class Collection(TypedDict):
     id: UUID
     name: str
     topic: str
-    metadata: Optional[Metadata]
+    metadata: Optional[CollectionMetadata]
     dimension: Optional[int]
     tenant: str
     database: str

@@ -127,6 +127,12 @@ safe_values: List[SearchStrategy[Union[int, float, str, bool]]] = [
     st.booleans(),
 ]
 
+collection_metadata_safe_values: List[SearchStrategy[Union[int, float, str]]] = [
+    safe_text,
+    safe_integers,
+    safe_floats,
+]
+
 
 def one_or_both(
     strategy_a: st.SearchStrategy[Any], strategy_b: st.SearchStrategy[Any]
@@ -161,7 +167,7 @@ def collection_name(draw: st.DrawFn) -> str:
 
 
 collection_metadata = st.one_of(
-    st.none(), st.dictionaries(safe_text, st.one_of(*safe_values))
+    st.none(), st.dictionaries(safe_text, st.one_of(*collection_metadata_safe_values))
 )
 
 
@@ -239,11 +245,12 @@ def embedding_function_strategy(
 class ExternalCollection:
     """
     An external view of a collection.
-    
+
     This strategy only contains information about a collection that a client of Chroma
     sees -- that is, it contains none of Chroma's internal bookkeeping. It should
     be used to test the API and client code.
     """
+
     name: str
     metadata: Optional[types.Metadata]
     embedding_function: Optional[types.EmbeddingFunction[Embeddable]]
@@ -258,6 +265,7 @@ class Collection(ExternalCollection):
     collection. It is a superset of ExternalCollection and should be used to test
     internal Chroma logic.
     """
+
     id: uuid.UUID
     dimension: int
     dtype: npt.DTypeLike

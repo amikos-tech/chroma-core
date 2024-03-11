@@ -1,9 +1,9 @@
 from pydantic import BaseModel
 from typing import Any, Dict, List, Optional
 from chromadb.api.types import (
-    CollectionMetadata,
     Include,
 )
+from chromadb.types import CollectionMetadata
 
 
 class AddEmbedding(BaseModel):

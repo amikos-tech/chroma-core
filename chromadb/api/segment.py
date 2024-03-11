@@ -36,11 +36,11 @@ from chromadb.api.types import (
     Include,
     GetResult,
     QueryResult,
-    validate_metadata,
     validate_update_metadata,
     validate_where,
     validate_where_document,
     validate_batch,
+    validate_collection_metadata,
 )
 from chromadb.telemetry.product.events import (
     CollectionAddEvent,
@@ -123,10 +123,12 @@ class SegmentAPI(ServerAPI):
             name=name,
             tenant=tenant,
         )
+
     @trace_method("SegmentAPI.get_database", OpenTelemetryGranularity.OPERATION)
     @override
     def get_database(self, name: str, tenant: str = DEFAULT_TENANT) -> t.Database:
         return self._sysdb.get_database(name=name, tenant=tenant)
+
     @trace_method("SegmentAPI.create_tenant", OpenTelemetryGranularity.OPERATION)
     @override
     def create_tenant(self, name: str) -> None:
@@ -136,6 +138,7 @@ class SegmentAPI(ServerAPI):
         self._sysdb.create_tenant(
             name=name,
         )
+
     @trace_method("SegmentAPI.get_tenant", OpenTelemetryGranularity.OPERATION)
     @override
     def get_tenant(self, name: str) -> t.Tenant:
@@ -159,7 +162,7 @@ class SegmentAPI(ServerAPI):
         database: str = DEFAULT_DATABASE,
     ) -> Collection:
         if metadata is not None:
-            validate_metadata(metadata)
+            validate_collection_metadata(metadata)
 
         # TODO: remove backwards compatibility in naming requirements
         check_index_name(name)
