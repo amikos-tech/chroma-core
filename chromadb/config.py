@@ -248,6 +248,14 @@ class Settings(BaseSettings):  # type: ignore
     # this is intended to be a first-time setup configuration
     migrations_hash_algorithm: Literal["md5", "sha256"] = "md5"
 
+    # Maintenance task configs
+
+    maintenance_clean_wal_at_startup: bool = False
+    maintenance_clean_wal_every_x_updates: int = 10000
+    maintenance_vacuum_at_startup: bool = False
+    maintenance_vacuum_every_x_updates: int = 10000
+    maintenance_analyze_at_startup: bool = False
+
     def require(self, key: str) -> Any:
         """Return the value of a required config key, or raise an exception if it is not
         set"""

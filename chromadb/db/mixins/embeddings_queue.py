@@ -13,7 +13,7 @@ from chromadb.types import (
     ScalarEncoding,
     Operation,
 )
-from chromadb.config import System
+from chromadb.config import System, Settings
 from chromadb.telemetry.opentelemetry import (
     OpenTelemetryClient,
     OpenTelemetryGranularity,
@@ -80,12 +80,19 @@ class SqlEmbeddingsQueue(SqlDB, Producer, Consumer):
     _max_batch_size: Optional[int]
     # How many variables are in the insert statement for a single record
     VARIABLES_PER_RECORD = 6
+    _settings: Settings
 
     def __init__(self, system: System):
         self._subscriptions = defaultdict(set)
         self._max_batch_size = None
         self._opentelemetry_client = system.require(OpenTelemetryClient)
+        self._settings = system.settings
         super().__init__(system)
+
+    def start(self) -> None:
+        if self._settings.maintenance_clean_wal_at_startup:
+            # TODO: add maintenance once we know the max_seq_id in all segments
+            pass
 
     @trace_method("SqlEmbeddingsQueue.reset_state", OpenTelemetryGranularity.ALL)
     @override
