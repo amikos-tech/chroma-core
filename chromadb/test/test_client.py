@@ -321,6 +321,7 @@ def test_delete_ephemeral_client() -> None:
     client = chromadb.EphemeralClient()
     coll = client.get_or_create_collection("test")
     coll.add(ids="1", documents="a", embeddings=[1] * 128)
+    client.close()
     del client
 
     client = chromadb.EphemeralClient()

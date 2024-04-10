@@ -476,13 +476,6 @@ class Client(SharedSystemClient, ClientAPI):
 
     # endregion
 
-    @override
-    def __del__(self) -> None:
-        # only enforce resource clean-up for ephemeral clients - expand to others?
-        if self._identifier == "ephemeral":
-            self.close()
-        super().__del__()
-
 
 class AdminClient(SharedSystemClient, AdminAPI):
     _server: ServerAPI
