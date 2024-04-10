@@ -1,4 +1,5 @@
 from typing import ClassVar, Dict, Optional, Sequence
+from collections import defaultdict
 from uuid import UUID
 import uuid
 
@@ -32,6 +33,7 @@ import chromadb.utils.embedding_functions as ef
 
 class SharedSystemClient:
     _identifer_to_system: ClassVar[Dict[str, System]] = {}
+    _refcount: ClassVar[defaultdict[str, int]] = defaultdict(int)
     _identifier: str
 
     # region Initialization
@@ -41,6 +43,7 @@ class SharedSystemClient:
     ) -> None:
         self._identifier = SharedSystemClient._get_identifier_from_settings(settings)
         SharedSystemClient._create_system_if_not_exists(self._identifier, settings)
+        SharedSystemClient._refcount[self._identifier] += 1
 
     @classmethod
     def _create_system_if_not_exists(
@@ -104,12 +107,20 @@ class SharedSystemClient:
     @staticmethod
     def clear_system_cache() -> None:
         SharedSystemClient._identifer_to_system = {}
+        SharedSystemClient._refcount.clear()
 
     @property
     def _system(self) -> System:
         return SharedSystemClient._identifer_to_system[self._identifier]
 
     # endregion
+
+    def __del__(self) -> None:
+        if self._identifier in SharedSystemClient._refcount:
+            SharedSystemClient._refcount[self._identifier] -= 1
+            if SharedSystemClient._refcount[self._identifier] == 0:
+                del SharedSystemClient._identifer_to_system[self._identifier]
+                del SharedSystemClient._refcount[self._identifier]
 
 
 class Client(SharedSystemClient, ClientAPI):
