@@ -315,3 +315,14 @@ def test_http_client_use_after_close(http_api: ClientAPI) -> None:
             http_api.count_collections()
         with pytest.raises(RuntimeError, match="Component not running"):
             http_api.heartbeat()
+
+
+def test_delete_ephemeral_client() -> None:
+    client = chromadb.EphemeralClient()
+    coll = client.get_or_create_collection("test")
+    coll.add(ids="1", documents="a", embeddings=[1] * 128)
+    del client
+
+    client = chromadb.EphemeralClient()
+    with pytest.raises(Exception):
+        client.get_collection("test").get()
